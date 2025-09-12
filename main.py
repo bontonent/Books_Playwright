@@ -17,6 +17,8 @@ class PlayWrightManager:
     def __init__(self,url):
             self.url = url
             self.base_url = [] # save all url, what don't work on it
+            self.base_url_lost = [] # base_url if complete lost element
+            self.do_not_touch = []
             print("Start project")
             self.i = 0
 #
@@ -31,17 +33,20 @@ class PlayWrightManager:
         await self.get_url_page(page_catalog)
 
         #Start work with product page
-        page_product = await website.new_page()
-        # I don't know how
-        # wait new url element
 
-        for one_url in tqdm(self.base_url):
-            await page_product.goto(one_url)
-            await self.get_data_product_page(page_product)
+        # base element. if got all data, remove index.
+        process_one = await website.new_page()
+        for index_ou, one_url in enumerate(tqdm(reversed(self.base_url))):
+            self.do_not_touch.append(one_url)
+            await process_one.goto(one_url)
+            await self.get_data_product_page(process_one)
 
+
+
+        process_two = await website.new_page()
         for one_url in tqdm(self.base_url):
-            await page_product.goto(one_url)
-            await self.get_data_product_page(page_product)
+            await process_two.goto(one_url)
+            await self.get_data_product_page(process_two)
 
         # print(self.base_url)
         # print(len(self.base_url))
@@ -97,7 +102,10 @@ class PlayWrightManager:
             query_page = await page_catalog.query_selector_all("h3 a")
             for page_text in query_page:
                 element_queary_work = await page_text.get_attribute("href")
-                self.base_url.append("".join(["https://books.toscrape.com/catalogue/",element_queary_work.replace("../../","")]))
+                add_url_in_base = "".join(["https://books.toscrape.com/catalogue/", element_queary_work.replace("../../", "")])
+                self.base_url.append(add_url_in_base)
+                self.base_url_lost.append(add_url_in_base)
+
             still_work = await self.next_page(page_catalog)
     async def next_page(self,page_catalog):
         # try click on new page
