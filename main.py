@@ -18,7 +18,7 @@ class PlayWrightManager:
             self.url = url
             self.base_url = [] # save all url, what don't work on it
             self.base_url_lost = [] # base_url if complete lost element
-            self.do_not_touch = []
+            self.process_work = ["",""] # process work at the moment with him
             print("Start project")
             self.i = 0
 #
@@ -36,17 +36,39 @@ class PlayWrightManager:
 
         # base element. if got all data, remove index.
         process_one = await website.new_page()
-        for index_ou, one_url in enumerate(tqdm(reversed(self.base_url))):
-            self.do_not_touch.append(one_url)
+        for index_ou, one_url in enumerate(reversed(tqdm(self.base_url_lost))):
+            if self.process_work[1] == self.base_url_lost[len(self.base_url_lost) - index_ou - 1]:
+                continue
+            # remove from lost array
+            self.base_url_lost.pop(len(self.base_url_lost) - index_ou - 1)
+            # add in process work
+            self.process_work[0] = one_url
+
             await process_one.goto(one_url)
             await self.get_data_product_page(process_one)
 
+            #if complete good
+            self.process_work[0] = ""
 
+            #if complete bad
+            # self.base_url.append(self.process_work[0])
+            # self.process_work[0] = ""
 
         process_two = await website.new_page()
-        for one_url in tqdm(self.base_url):
-            await process_two.goto(one_url)
-            await self.get_data_product_page(process_two)
+        for index_ou, two_url in enumerate(reversed(tqdm(self.base_url_lost))):
+
+            if self.process_work[0] == self.base_url_lost[len(self.base_url_lost) - index_ou - 1]:
+                continue
+            # remove from lost array
+            self.base_url_lost.pop(len(self.base_url_lost) - index_ou - 1)
+            # add in process work
+            self.process_work[1] = two_url
+
+            await process_one.goto(two_url)
+            await self.get_data_product_page(process_one)
+
+            # if complete good
+            self.process_work[1] = ""
 
         # print(self.base_url)
         # print(len(self.base_url))
