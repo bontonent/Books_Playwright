@@ -5,7 +5,7 @@
 #
 # one process get link
 # two process open site, close site
-
+import time
 import asyncio
 from playwright.async_api import async_playwright
 import sys
@@ -19,6 +19,7 @@ class PlayWrightManager:
             self.base_url = [] # save all url, what don't work on it
             self.base_url_lost = [] # base_url if complete lost element
             self.process_work = ["",""] # process work at the moment with him
+            self.we_still_work = True
             print("Start project")
             self.i = 0
 #
@@ -36,42 +37,54 @@ class PlayWrightManager:
 
         # base element. if got all data, remove index.
         process_one = await website.new_page()
-        for index_ou, one_url in enumerate(reversed(tqdm(self.base_url_lost))):
-            if self.process_work[1] == self.base_url_lost[len(self.base_url_lost) - index_ou - 1]:
-                continue
-            # remove from lost array
-            self.base_url_lost.pop(len(self.base_url_lost) - index_ou - 1)
-            # add in process work
-            self.process_work[0] = one_url
+        while True:
 
-            await process_one.goto(one_url)
-            await self.get_data_product_page(process_one)
+            if len(self.base_url_lost) != 0:
+                sys.stdout.write(f"\r url need checked {len(self.base_url_lost)}")
+                sys.stdout.flush()
+                # add in process work
+                self.process_work[0] = self.base_url_lost[len(self.base_url_lost) - 1 - 1]
+                # remove from lost array
+                self.base_url_lost.pop(len(self.base_url_lost) - 1 - 1)
 
-            #if complete good
-            self.process_work[0] = ""
+                await process_one.goto(self.process_work[0])
+                await self.get_data_product_page(process_one)
 
-            #if complete bad
-            # self.base_url.append(self.process_work[0])
-            # self.process_work[0] = ""
+                # if complete good
+                self.process_work[0] = ""
 
-        process_two = await website.new_page()
-        for index_ou, two_url in enumerate(reversed(tqdm(self.base_url_lost))):
+                # if complete bad
+                # self.base_url.append(self.process_work[0])
+                # self.process_work[0] = ""
+            elif self.we_still_work == False:
+                break
+            else:
+                await process_one.wait_for_timeout(1000)
 
-            if self.process_work[0] == self.base_url_lost[len(self.base_url_lost) - index_ou - 1]:
-                continue
-            # remove from lost array
-            self.base_url_lost.pop(len(self.base_url_lost) - index_ou - 1)
-            # add in process work
-            self.process_work[1] = two_url
 
-            await process_one.goto(two_url)
-            await self.get_data_product_page(process_one)
-
-            # if complete good
-            self.process_work[1] = ""
-
-        # print(self.base_url)
-        # print(len(self.base_url))
+        # process_two = await website.new_page()
+        # while True:
+        #     if len(self.base_url_lost) == 0:
+        #         if self.we_still_work:
+        #
+        #             # add in process work
+        #             self.process_work[1] = await self.base_url_lost[len(self.base_url_lost) - 0 - 1]
+        #             # remove from lost array
+        #             self.base_url_lost.pop(len(self.base_url_lost) - 0 - 1)
+        #
+        #             await process_two.goto(self.process_work[1])
+        #             await self.get_data_product_page(process_two)
+        #
+        #             # if complete good
+        #             self.process_work[1] = ""
+        #
+        #             # if complete bad
+        #             # self.base_url.append(self.process_work[0])
+        #             # self.process_work[0] = ""
+        #         else:
+        #             time.sleep(1)
+        #     else:
+        #         break
         await website.close()
 
 # for work with product page
@@ -81,9 +94,11 @@ class PlayWrightManager:
         for index_gen,genre_el in enumerate(query_gen):
             if index_gen == 2:
                 genre = await genre_el.text_content()
+
         query_title = await page_product.query_selector_all("div h1")
         for title_el in query_title:
             title = await title_el.text_content()
+
         query_elements = await page_product.query_selector_all("div.row div p")
         for index_e, right_elements in enumerate(query_elements):
             if index_e == 0:
@@ -92,12 +107,15 @@ class PlayWrightManager:
                 stock = (await right_elements.text_content()).replace("\n","").strip()
             if index_e == 2:
                 stars = await right_elements.get_attribute("class")
+
         query_describe = await page_product.query_selector_all("article.product_page > p")
         for describe_el in query_describe:
             describe = await describe_el.text_content()
+
         query_img = (await page_product.query_selector_all("div.item.active img"))
         for img_el in query_img:
             img_url = ("".join(["https://books.toscrape.com/", (await img_el.get_attribute('src')).replace("../../", "")]))
+
         query_table = await page_product.query_selector_all("tbody")
         for table_el in query_table:
             query_table_th = await table_el.query_selector_all("th")
@@ -129,12 +147,18 @@ class PlayWrightManager:
                 self.base_url_lost.append(add_url_in_base)
 
             still_work = await self.next_page(page_catalog)
+
     async def next_page(self,page_catalog):
         # try click on new page
         try:
             query_next_page = await page_catalog.query_selector_all("section div div ul li a[href]")
             for button_next_page in query_next_page:
                 if (await button_next_page.text_content()) == "next":
+                    # very long work
+                    if self.i == 0 :
+                        self.we_still_work = False
+                        return False
+                    #
                     self.i = self.i +1
                     sys.stdout.write(f"\r page {self.i}")
                     sys.stdout.flush()
@@ -142,8 +166,10 @@ class PlayWrightManager:
                     await page_catalog.wait_for_timeout(10) # don't need view png in the site/ for png 1000 need
                     return True
             # if don't find button, we can stop search new url element
+            self.we_still_work = False
             return False
         except:
+            self.we_still_work = False
             return False
 
 async def asmain ():
