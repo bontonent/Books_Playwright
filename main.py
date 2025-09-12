@@ -6,14 +6,11 @@
 # one process get link
 # two process open site, close site
 
+import asyncio
+import sys
+from tqdm import tqdm
 from playwright.sync_api import sync_playwright
 
-# def create_new_page(browser,url):
-#     product_page = browser.new_page()
-#     product_page.goto(url)
-#     for element_page in product_page.query_selector_all("body div div div div article.product_page div.row div p.price_color"):
-#         product_page.wait_for_timeout(300)
-#         print(element_page.text_content())
 
 # main Process
 class PlayWrightManager:
@@ -28,23 +25,24 @@ class PlayWrightManager:
         pd = sync_playwright().start()
         website = pd.chromium.launch(headless=True)
 
-        # uncomment for use get url
-        # # Work with catalog
-        # page_catalog = website.new_page()
-        # page_catalog.goto(self.url)
-        # self.get_url_page(page_catalog)
+        # Work with catalog
+        page_catalog = website.new_page()
+        page_catalog.goto(self.url)
+        self.get_url_page(page_catalog)
 
         #Start work with product page
         page_product = website.new_page()
         # I don't know how
         # wait new url element
 
-        # for one_url in self.base_url:
-        one_url = 'https://books.toscrape.com/catalogue/1000-places-to-see-before-you-die_1/index.html'
-        page_product.goto(one_url)
-        self.get_data_product_page(page_product)
+        for one_url in tqdm(self.base_url):
+            page_product.goto(one_url)
+            self.get_data_product_page(page_product)
 
-        # uncomment for use get url
+        for one_url in tqdm(self.base_url):
+            page_product.goto(one_url)
+            self.get_data_product_page(page_product)
+
         # print(self.base_url)
         # print(len(self.base_url))
         website.close()
@@ -91,15 +89,14 @@ class PlayWrightManager:
             for page_text in page_catalog.query_selector_all("h3 a"):
                 self.base_url.append("".join(["https://books.toscrape.com/catalogue/",page_text.get_attribute("href").replace("../../","")]))
             still_work = self.next_page(page_catalog)
-            # print(still_work)
     def next_page(self,page_catalog):
         # try click on new page
         try:
             for button_next_page in page_catalog.query_selector_all("section div div ul li a[href]"):
-                # print(button_next_page.text_content())
                 if button_next_page.text_content() == "next":
-                    self.i = self.i + 1
-                    print(self.i)
+                    self.i = self.i +1
+                    sys.stdout.write(f"\r page {self.i}")
+                    sys.stdout.flush()
                     button_next_page.click()
                     page_catalog.wait_for_timeout(10) # don't need view png in the site/ for png 1000 need
                     return True
