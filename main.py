@@ -24,37 +24,49 @@ class PlayWrightManager:
         self.i = 0
 
     def main(self):
+        #necessary element
         pd = sync_playwright().start()
-
         website = pd.chromium.launch(headless=True)
-        page = website.new_page()
-        page.goto(self.url)
-        self.get_url_page(page)
+
+        # Work with catalog
+        page_catalog = website.new_page()
+        page_catalog.goto(self.url)
+        self.get_url_page(page_catalog)
+
+        #Start work with product page
+        page_product = website.new_page()
+        # I don't know how
+        # wait new url element
+        for one_url in self.base_url:
+            page_product.goto(one_url)
+
+
         print(self.base_url)
         print(len(self.base_url))
         website.close()
 
-    def get_url_page(self,page):
 
+
+# for work with catalog
+    def get_url_page(self,page_catalog):
         still_work = True
         while (still_work):
-            for page_text in page.query_selector_all("h3 a"):
+            for page_text in page_catalog.query_selector_all("h3 a"):
                 self.base_url.append("".join(["https://books.toscrape.com/catalogue/",page_text.get_attribute("href").replace("../../","")]))
-
-            still_work = self.next_page(page)
+            still_work = self.next_page(page_catalog)
             # print(still_work)
-
-    def next_page(self,page):
+    def next_page(self,page_catalog):
         # try click on new page
         try:
-            for button_next_page in page.query_selector_all("section div div ul li a[href]"):
+            for button_next_page in page_catalog.query_selector_all("section div div ul li a[href]"):
                 # print(button_next_page.text_content())
                 if button_next_page.text_content() == "next":
                     self.i = self.i + 1
                     print(self.i)
                     button_next_page.click()
-                    page.wait_for_timeout(10) # don't need view png in the site/ for png 1000 need
+                    page_catalog.wait_for_timeout(10) # don't need view png in the site/ for png 1000 need
                     return True
+            # if don't find button, we can stop search new url element
             return False
         except:
             return False
