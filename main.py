@@ -7,107 +7,121 @@
 # two process open site, close site
 
 import asyncio
+from playwright.async_api import async_playwright
 import sys
 from tqdm import tqdm
-from playwright.sync_api import sync_playwright
 
 
 # main Process
 class PlayWrightManager:
     def __init__(self,url):
-        self.url = url
-        self.base_url = [] # save all url, what don't work on it
-        print("Start project")
-        self.i = 0
-
-    def main(self):
+            self.url = url
+            self.base_url = [] # save all url, what don't work on it
+            print("Start project")
+            self.i = 0
+#
+    async def main(self):
         #necessary element
-        pd = sync_playwright().start()
-        website = pd.chromium.launch(headless=True)
+        pd = await async_playwright().start()
+        website = await pd.chromium.launch(headless=True)
 
         # Work with catalog
-        page_catalog = website.new_page()
-        page_catalog.goto(self.url)
-        self.get_url_page(page_catalog)
+        page_catalog = await website.new_page()
+        await page_catalog.goto(self.url)
+        await self.get_url_page(page_catalog)
 
         #Start work with product page
-        page_product = website.new_page()
+        page_product = await website.new_page()
         # I don't know how
         # wait new url element
 
         for one_url in tqdm(self.base_url):
-            page_product.goto(one_url)
-            self.get_data_product_page(page_product)
+            await page_product.goto(one_url)
+            await self.get_data_product_page(page_product)
 
         for one_url in tqdm(self.base_url):
-            page_product.goto(one_url)
-            self.get_data_product_page(page_product)
+            await page_product.goto(one_url)
+            await self.get_data_product_page(page_product)
 
         # print(self.base_url)
         # print(len(self.base_url))
-        website.close()
+        await website.close()
 
 # for work with product page
-    def get_data_product_page(self,page_product):
+    async def get_data_product_page(self,page_product):
         # get all necessary data
-        for index_gen,genre_el in enumerate(page_product.query_selector_all("ul.breadcrumb li a")):
+        query_gen = await page_product.query_selector_all("ul.breadcrumb li a")
+        for index_gen,genre_el in enumerate(query_gen):
             if index_gen == 2:
-                genre = genre_el.text_content()
-        for title_el in page_product.query_selector_all("div h1"):
-            title = title_el.text_content()
-        for index_e, right_elements in enumerate(page_product.query_selector_all("div.row div p")):
+                genre = await genre_el.text_content()
+        query_title = await page_product.query_selector_all("div h1")
+        for title_el in query_title:
+            title = await title_el.text_content()
+        query_elements = await page_product.query_selector_all("div.row div p")
+        for index_e, right_elements in enumerate(query_elements):
             if index_e == 0:
-                price = right_elements.text_content()
+                price = await right_elements.text_content()
             if index_e == 1:
-                stock = right_elements.text_content().replace("\n","").strip()
+                stock = (await right_elements.text_content()).replace("\n","").strip()
             if index_e == 2:
-                stars = right_elements.get_attribute("class")
-        for describe_el in page_product.query_selector_all("article.product_page > p"):
-            describe = describe_el.text_content()
-        for img_el in page_product.query_selector_all("div.item.active img"):
-            img_url = "".join(["https://books.toscrape.com/",img_el.get_attribute('src').replace("../../","")])
-        for table_el in page_product.query_selector_all("tbody"):
-            for th_table_el,td_table_el in zip(table_el.query_selector_all("th"),table_el.query_selector_all("td")):
-                if th_table_el.text_content() == "UPC":
-                    UPC = td_table_el.text_content()
-                if th_table_el.text_content() == "Product Type":
-                    Product_Type = td_table_el.text_content()
-                if th_table_el.text_content() == "Price (excl. tax)":
-                    Price_excl_tax = td_table_el.text_content()
-                if th_table_el.text_content() == "Price (incl. tax)":
-                    Price_incl_tax = td_table_el.text_content()
-                if th_table_el.text_content() == "Tax":
-                    Tax = td_table_el.text_content()
+                stars = await right_elements.get_attribute("class")
+        query_describe = await page_product.query_selector_all("article.product_page > p")
+        for describe_el in query_describe:
+            describe = await describe_el.text_content()
+        query_img = (await page_product.query_selector_all("div.item.active img"))
+        for img_el in query_img:
+            img_url = ("".join(["https://books.toscrape.com/", (await img_el.get_attribute('src')).replace("../../", "")]))
+        query_table = await page_product.query_selector_all("tbody")
+        for table_el in query_table:
+            query_table_th = await table_el.query_selector_all("th")
+            query_table_td = await table_el.query_selector_all("td")
+            for th_table_el,td_table_el in zip(query_table_th,query_table_td):
+                if (await th_table_el.text_content()) == "UPC":
+                    UPC = await td_table_el.text_content()
+                if (await th_table_el.text_content()) == "Product Type":
+                    Product_Type = await td_table_el.text_content()
+                if (await th_table_el.text_content()) == "Price (excl. tax)":
+                    Price_excl_tax = await td_table_el.text_content()
+                if (await th_table_el.text_content()) == "Price (incl. tax)":
+                    Price_incl_tax = await td_table_el.text_content()
+                if (await th_table_el.text_content()) == "Tax":
+                    Tax = await td_table_el.text_content()
                 # I don't need in stock available, I had
-                if th_table_el.text_content() == "Number of reviews":
-                    Number_of_reviews = td_table_el.text_content()
+                if (await th_table_el.text_content()) == "Number of reviews":
+                    Number_of_reviews = await td_table_el.text_content()
 
 # for work with catalog
-    def get_url_page(self,page_catalog):
+    async def get_url_page(self,page_catalog):
         still_work = True
         while (still_work):
-            for page_text in page_catalog.query_selector_all("h3 a"):
-                self.base_url.append("".join(["https://books.toscrape.com/catalogue/",page_text.get_attribute("href").replace("../../","")]))
-            still_work = self.next_page(page_catalog)
-    def next_page(self,page_catalog):
+            query_page = await page_catalog.query_selector_all("h3 a")
+            for page_text in query_page:
+                element_queary_work = await page_text.get_attribute("href")
+                self.base_url.append("".join(["https://books.toscrape.com/catalogue/",element_queary_work.replace("../../","")]))
+            still_work = await self.next_page(page_catalog)
+    async def next_page(self,page_catalog):
         # try click on new page
         try:
-            for button_next_page in page_catalog.query_selector_all("section div div ul li a[href]"):
-                if button_next_page.text_content() == "next":
+            query_next_page = await page_catalog.query_selector_all("section div div ul li a[href]")
+            for button_next_page in query_next_page:
+                if (await button_next_page.text_content()) == "next":
                     self.i = self.i +1
                     sys.stdout.write(f"\r page {self.i}")
                     sys.stdout.flush()
-                    button_next_page.click()
-                    page_catalog.wait_for_timeout(10) # don't need view png in the site/ for png 1000 need
+                    await button_next_page.click()
+                    await page_catalog.wait_for_timeout(10) # don't need view png in the site/ for png 1000 need
                     return True
             # if don't find button, we can stop search new url element
             return False
         except:
             return False
 
-if __name__ == "__main__":
-    url = "https://books.toscrape.com/catalogue/category/books_1/index.html"
-    init_class = PlayWrightManager(url)
-    init_class.main()
+async def asmain ():
+    if __name__ == "__main__":
+        url = "https://books.toscrape.com/catalogue/category/books_1/index.html"
+        init_class = PlayWrightManager(url)
+        await init_class.main()
+        print("End class")
 
-    print("End class")
+asyncio.run(asmain())
+
