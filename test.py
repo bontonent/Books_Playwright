@@ -1,14 +1,25 @@
-# anytime I can delete with my friends others process
-kol  = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]
-# ok
-len_kol = len(kol)
-for i,ko in enumerate(reversed(kol)):
+import multiprocessing
+import time
+import random
 
-    # first, give and delete, if don't get all data, recovery
 
-    kol.pop(len_kol - i - 1)
+def time_sleep(element):
+    if element == "Error":
+        time.sleep(1)
+        i = i
+        print("Error")
 
-    if i > 0:
-        break
+    time_sec = random.randint(0,3)
+    time.sleep(time_sec)
 
-print(kol)
+i = 0;p = []
+
+p.append(multiprocessing.Process(target = time_sleep, args = (None,)))
+p.append(multiprocessing.Process(target = time_sleep, args = ("Error",)))
+p.append(multiprocessing.Process(target = time_sleep, args = (None,)))
+
+for process in p:
+    process.start()
+for process in p:
+    process.join()
+print("End process")

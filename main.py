@@ -5,8 +5,8 @@
 #
 # one process get link
 # two process open site, close site
-import time
 import asyncio
+import multiprocessing as mp
 from playwright.async_api import async_playwright
 import sys
 from tqdm import tqdm
@@ -28,20 +28,23 @@ class PlayWrightManager:
         pd = await async_playwright().start()
         website = await pd.chromium.launch(headless=True)
 
+        # First process
         # Work with catalog
         page_catalog = await website.new_page()
         await page_catalog.goto(self.url)
         await self.get_url_page(page_catalog)
 
-        #Start work with product page
 
+        # Second and Third process
         # base element. if got all data, remove index.
         process_one = await website.new_page()
         while True:
-
             if len(self.base_url_lost) != 0:
-                sys.stdout.write(f"\r url need checked {len(self.base_url_lost)}")
+                sys.stdout.write(f"\rUrl will need check {len(self.base_url_lost)}")
                 sys.stdout.flush()
+                if (len(self.base_url_lost) == 1000) | (len(self.base_url_lost) == 100) | (len(self.base_url_lost) == 10) | (len(self.base_url_lost) == 1):
+                    print()
+
                 # add in process work
                 self.process_work[0] = self.base_url_lost[len(self.base_url_lost) - 1 - 1]
                 # remove from lost array
@@ -60,31 +63,6 @@ class PlayWrightManager:
                 break
             else:
                 await process_one.wait_for_timeout(1000)
-
-
-        # process_two = await website.new_page()
-        # while True:
-        #     if len(self.base_url_lost) == 0:
-        #         if self.we_still_work:
-        #
-        #             # add in process work
-        #             self.process_work[1] = await self.base_url_lost[len(self.base_url_lost) - 0 - 1]
-        #             # remove from lost array
-        #             self.base_url_lost.pop(len(self.base_url_lost) - 0 - 1)
-        #
-        #             await process_two.goto(self.process_work[1])
-        #             await self.get_data_product_page(process_two)
-        #
-        #             # if complete good
-        #             self.process_work[1] = ""
-        #
-        #             # if complete bad
-        #             # self.base_url.append(self.process_work[0])
-        #             # self.process_work[0] = ""
-        #         else:
-        #             time.sleep(1)
-        #     else:
-        #         break
         await website.close()
 
 # for work with product page
@@ -154,11 +132,11 @@ class PlayWrightManager:
             query_next_page = await page_catalog.query_selector_all("section div div ul li a[href]")
             for button_next_page in query_next_page:
                 if (await button_next_page.text_content()) == "next":
-                    # very long work
-                    if self.i == 0 :
-                        self.we_still_work = False
-                        return False
-                    #
+                    # #  Make less data
+                    # if self.i == 0 :
+                    #     self.we_still_work = False
+                    #     return False
+                    # #
                     self.i = self.i +1
                     sys.stdout.write(f"\r page {self.i}")
                     sys.stdout.flush()
