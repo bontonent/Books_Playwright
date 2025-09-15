@@ -6,7 +6,6 @@
 # one process get link
 # two process open site, close site
 import asyncio
-import multiprocessing as mp
 from playwright.async_api import async_playwright
 import sys
 from tqdm import tqdm
@@ -16,6 +15,7 @@ from tqdm import tqdm
 class PlayWrightManager:
     def __init__(self,url):
             self.url = url
+            self.last_url = None # Save last url where are we work
             self.base_url = [] # save all url, what don't work on it
             self.base_url_lost = [] # base_url if complete lost element
             self.process_work = ["",""] # process work at the moment with him
@@ -30,18 +30,30 @@ class PlayWrightManager:
 
         # First process
         # Work with catalog
-        page_catalog = await website.new_page()
-        await page_catalog.goto(self.url)
-        await self.get_url_page(page_catalog)
-        await page_catalog.close()
-        #if error:
-        #   page_catalog.close
-        #   page_catalog = await website.new_page() new page
+        page_catalog = await website.new_page() # first process
+        process_second = await website.new_page() # second process
+        process_third = await website.new_page() # third process
 
-        # Second and Third process
-        # base element. if got all data, remove index.
-        process_one = await website.new_page()
-        await self.go_through_url(process_one)
+        await page_catalog.goto(self.url)
+        # It is bad decision. I know. But It is work systems.
+        # better use "multiprocessing"
+        while True:
+            try:
+                await asyncio.gather(
+                    self.get_url_page(page_catalog)
+                    , self.go_through_url(process_second)
+                    , self.go_through_url(process_third)
+                )
+            except Exception as e:
+                await page_catalog.close()
+                await process_second.close()
+                await process_third.close()
+                process_second = await website.new_page()
+                process_third = await website.new_page()
+                page_catalog = await website.new_page()
+                await page_catalog.goto(self.last_url)
+            if len(self.base_url_lost) == 0:
+                break
 
         await website.close()
 
@@ -123,17 +135,31 @@ class PlayWrightManager:
                 if (await th_table_el.text_content()) == "Number of reviews":
                     Number_of_reviews = await td_table_el.text_content()
 
+        # Need in SQL
+        # print(title)
+        # print(genre)
+        # print(price)
+        # print(stock)
+        # print(stars)
+        # print(describe)
+        # print(img_url)
+        # print(UPC)
+        # print(Product_Type)
+        # print(Price_excl_tax)
+        # print(Price_incl_tax)
+        # print(Tax)
+        # print(Number_of_reviews)
 # for work with catalog
     async def get_url_page(self,page_catalog):
         still_work = True
         while (still_work):
+            self.last_url = page_catalog.url
             query_page = await page_catalog.query_selector_all("h3 a")
             for page_text in query_page:
                 element_queary_work = await page_text.get_attribute("href")
                 add_url_in_base = "".join(["https://books.toscrape.com/catalogue/", element_queary_work.replace("../../", "")])
                 self.base_url.append(add_url_in_base)
                 self.base_url_lost.append(add_url_in_base)
-
             still_work = await self.next_page(page_catalog)
 
     async def next_page(self,page_catalog):
@@ -142,14 +168,6 @@ class PlayWrightManager:
             query_next_page = await page_catalog.query_selector_all("section div div ul li a[href]")
             for button_next_page in query_next_page:
                 if (await button_next_page.text_content()) == "next":
-                    # #  Make less data
-                    # if self.i == 0 :
-                    #     self.we_still_work = False
-                    #     return False
-                    # #
-                    self.i = self.i +1
-                    sys.stdout.write(f"\r page {self.i}")
-                    sys.stdout.flush()
                     await button_next_page.click()
                     await page_catalog.wait_for_timeout(10) # don't need view png in the site/ for png 1000 need
                     return True
