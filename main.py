@@ -33,11 +33,19 @@ class PlayWrightManager:
         page_catalog = await website.new_page()
         await page_catalog.goto(self.url)
         await self.get_url_page(page_catalog)
-
+        await page_catalog.close()
+        #if error:
+        #   page_catalog.close
+        #   page_catalog = await website.new_page() new page
 
         # Second and Third process
         # base element. if got all data, remove index.
         process_one = await website.new_page()
+        await self.go_through_url(process_one)
+
+        await website.close()
+
+    async def go_through_url(self,process_one):
         while True:
             if len(self.base_url_lost) != 0:
                 sys.stdout.write(f"\rUrl will need check {len(self.base_url_lost)}")
@@ -63,7 +71,9 @@ class PlayWrightManager:
                 break
             else:
                 await process_one.wait_for_timeout(1000)
-        await website.close()
+
+        await process_one.close()
+
 
 # for work with product page
     async def get_data_product_page(self,page_product):
