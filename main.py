@@ -36,7 +36,8 @@ class PlayWrightManager:
 
         await page_catalog.goto(self.url)
         # It is bad decision. I know. But It is work systems.
-        # better use "multiprocessing"
+        # better use "multiprocessing", but without async(I wouldn't change all project
+        # if will have time, maybe update this
         while True:
             try:
                 await asyncio.gather(
@@ -54,7 +55,6 @@ class PlayWrightManager:
                 await page_catalog.goto(self.last_url)
             if len(self.base_url_lost) == 0:
                 break
-
         await website.close()
 
     async def go_through_url(self,process_one):
@@ -89,6 +89,10 @@ class PlayWrightManager:
 
 # for work with product page
     async def get_data_product_page(self,page_product):
+        # clear all element
+        title=None;genre=None;price=None;stock=None;stars=None;describe=None;
+        img_url=None;UPC=None;Product_Type=None;Price_excl_tax=None;
+        Price_incl_tax = None;Tax = None;Number_of_reviews = None
         # get all necessary data
         query_gen = await page_product.query_selector_all("ul.breadcrumb li a")
         for index_gen,genre_el in enumerate(query_gen):
@@ -136,19 +140,22 @@ class PlayWrightManager:
                     Number_of_reviews = await td_table_el.text_content()
 
         # Need in SQL
-        # print(title)
-        # print(genre)
-        # print(price)
-        # print(stock)
-        # print(stars)
-        # print(describe)
-        # print(img_url)
-        # print(UPC)
-        # print(Product_Type)
-        # print(Price_excl_tax)
-        # print(Price_incl_tax)
-        # print(Tax)
-        # print(Number_of_reviews)
+        for i in range(30):
+            print("_",end='')
+        print()
+        print(title)
+        print(genre)
+        print(price)
+        print(stock)
+        print(stars)
+        print(describe)
+        print(img_url)
+        print(UPC)
+        print(Product_Type)
+        print(Price_excl_tax)
+        print(Price_incl_tax)
+        print(Tax)
+        print(Number_of_reviews)
 # for work with catalog
     async def get_url_page(self,page_catalog):
         still_work = True
