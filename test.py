@@ -44,6 +44,7 @@ if __name__ == "__main__":
     mp.set_start_method("spawn", force=True)   # MUST be first thing in __main__
     SEED_URL = "https://books.toscrape.com/catalogue/category/books_1/index.html"
     # I use a lot of time self. and it is unnecessary
+    # self. in process don't work
     task_q = mp.Queue()
     # need learn. Maybe cool element
     stop_events = [mp.Event() for _ in range(3)]

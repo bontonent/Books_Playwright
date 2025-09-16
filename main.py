@@ -23,76 +23,58 @@ class PlayWrightManager:
             self.i = 0
 #
     def main(self):
-        #necessary element
 
-        # First process
-        # Work with catalog
-        # page_catalog = website.new_page() # first process
-        # process_second = website.new_page() # second process
-        # process_third = website.new_page() # third process
-
-        # page_catalog.goto(self.url)
-        # It is bad decision. I know. But It is work systems.
-        # better use "multiprocessing", but without async(I wouldn't change all project
-        # if will have time, maybe update this
-        # while True:
-        #     try:
-        #         asyncio.gather(
-        p1 = mp.Process(target=self.get_url_page, args = (self.url,))
-        # p2 = mp.Process(target=self.go_through_url, args = (process_second,))
-        # p3 = mp.Process(target=self.go_through_url, args = (process_third,))
+        task_q = mp.Queue()
+        p1 = mp.Process(target=self.get_url_page, args = (self.url,task_q,))
+        p2 = mp.Process(target=self.go_through_url,args = (task_q,))
+        p3 = mp.Process(target=self.go_through_url,args = (task_q,))
         p1.start()
-        # p2.start()
-        # p3.start()
+        p2.start()
+        p3.start()
 
         p1.join()
-        # p2.join()
-        # p3.join()
-
-        # self.get_url_page(page_catalog)
-        # self.go_through_url(process_second)
-        # self.go_through_url(process_third)
-
-            # except Exception as e:
-            #     page_catalog.close()
-            #     process_second.close()
-            #     process_third.close()
-            #     process_second = website.new_page()
-            #     process_third = website.new_page()
-            #     page_catalog = website.new_page()
-            #     page_catalog.goto(self.last_url)
-            # if len(self.base_url_lost) == 0:
-            #     break
+        p2.join()
+        p3.join()
 
 
-    def go_through_url(self,process_one):
-        while True:
-            if len(self.base_url_lost) != 0:
-                sys.stdout.write(f"\rUrl will need check {len(self.base_url_lost)}")
-                sys.stdout.flush()
-                if (len(self.base_url_lost) == 1000) | (len(self.base_url_lost) == 100) | (len(self.base_url_lost) == 10) | (len(self.base_url_lost) == 1):
-                    print()
+    def go_through_url(self,task_q):
+        with sync_playwright() as p_2:
+            browser_product = p_2.chromium.launch(headless=True)
+            process_one  = browser_product.new_page()
+            while True:
+                try:
+                    self.base_url_lost.append(task_q.get(timeout=1))
 
-                # add in process work
-                self.process_work[0] = self.base_url_lost[len(self.base_url_lost) - 1 - 1]
-                # remove from lost array
-                self.base_url_lost.pop(len(self.base_url_lost) - 1 - 1)
+                    self.base_url.append(task_q.get(timeout=1))
+                    print(len(self.base_url))
+                except Exception as e:
+                    print(end="")
+                if len(self.base_url_lost) != 0:
+                    sys.stdout.write(f"\rUrl will need check {len(self.base_url_lost)}")
+                    sys.stdout.flush()
+                    if (len(self.base_url_lost) == 1000) | (len(self.base_url_lost) == 100) | (len(self.base_url_lost) == 10) | (len(self.base_url_lost) == 1):
+                        print()
 
-                process_one.goto(self.process_work[0])
-                self.get_data_product_page(process_one)
+                    # add in process work
+                    self.process_work[0] = self.base_url_lost[len(self.base_url_lost) - 1 - 1]
+                    # remove from lost array
+                    self.base_url_lost.pop(len(self.base_url_lost) - 1 - 1)
 
-                # if complete good
-                self.process_work[0] = ""
+                    process_one.goto(self.process_work[0])
+                    self.get_data_product_page(process_one)
 
-                # if complete bad
-                # self.base_url.append(self.process_work[0])
-                # self.process_work[0] = ""
-            elif self.we_still_work == False:
-                break
-            else:
-                process_one.wait_for_timeout(1000)
+                    # if complete good
+                    self.process_work[0] = ""
 
-        process_one.close()
+                    # if complete bad
+                    # self.base_url.append(self.process_work[0])
+                    # self.process_work[0] = ""
+                elif self.we_still_work == False:
+                    break
+                else:
+                    process_one.wait_for_timeout(1000)
+
+            browser_product.close()
 
 
 # for work with product page
@@ -165,10 +147,10 @@ class PlayWrightManager:
         print("Img url: ",img_url)
         print("Describe: ",describe)
 # for work with catalog
-    def get_url_page(self,url_def_1):
+    def get_url_page(self,url_def_1,task_q):
         with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
-            page_catalog = browser.new_page()
+            browser_catalog = p.chromium.launch(headless=True)
+            page_catalog = browser_catalog.new_page()
             page_catalog.goto(url_def_1)
             still_work = True
             while (still_work):
@@ -180,8 +162,10 @@ class PlayWrightManager:
                     add_url_in_base = "".join(["https://books.toscrape.com/catalogue/", element_queary_work.replace("../../", "")])
                     self.base_url.append(add_url_in_base)
                     self.base_url_lost.append(add_url_in_base)
+                    task_q.put(add_url_in_base)
+
                 still_work = self.next_page(page_catalog)
-            browser.close()
+            browser_catalog.close()
 
 
     def next_page(self,page_catalog):
