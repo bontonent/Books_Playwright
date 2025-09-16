@@ -1,9 +1,10 @@
-# What say Duck AI how use multiprocessing & playwright
+# What say Duck AI how use multiprocessing & playwright using
 import multiprocessing as mp
 from playwright.sync_api import sync_playwright
 import time
 
 def catalog_worker(seed_url, task_q, hb_val, stop_ev):
+
     # I don't think. If we try will use this, we don't get error
     # but need try
     with sync_playwright() as p:
@@ -40,14 +41,16 @@ def scraper_worker(task_q, hb_val, stop_ev):
         browser.close()
 
 if __name__ == "__main__":
-    # ok
     mp.set_start_method("spawn", force=True)   # MUST be first thing in __main__
     SEED_URL = "https://books.toscrape.com/catalogue/category/books_1/index.html"
+
     # I use a lot of time self. and it is unnecessary
     # self. in process don't work
     task_q = mp.Queue()
+
     # need learn. Maybe cool element
     stop_events = [mp.Event() for _ in range(3)]
+
     # don't know what it is
     hb_vals = [mp.Value('d', 0.0) for _ in range(3)]
 
