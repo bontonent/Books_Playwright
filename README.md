@@ -20,6 +20,7 @@ Quack! Simple scraper for books.toscrape.com — collects product page data and 
 
 ## SQL DB
 
+It is bad, make for SQL all element = TEXT. But It is fast
 ```sql
 CREATE DATABASE books;
 
