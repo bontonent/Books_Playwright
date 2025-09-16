@@ -11,6 +11,8 @@ import time
 # if Error_message, don't necessary
 import traceback
 
+# Connect db
+import connect_database
 
 class PlayWrightManager:
     def __init__(self,url):
@@ -171,6 +173,10 @@ class PlayWrightManager:
         print("Number of reviews: ",Number_of_reviews)
         print("Img url: ",img_url)
         print("Describe: ",describe)
+
+        #SQL save
+        connect_database.create_row(title, Product_Type, genre, price, stock, stars, UPC,
+         Price_excl_tax, Price_incl_tax, Tax, Number_of_reviews, img_url, describe)
 
     # For work with page catalog. Get name products
     def get_url_page(self,url_def_1,task_q):
