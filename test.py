@@ -4,6 +4,8 @@ from playwright.sync_api import sync_playwright
 import time
 
 def catalog_worker(seed_url, task_q, hb_val, stop_ev):
+    # I don't think. If we try will use this, we don't get error
+    # but need try
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
         page = browser.new_page()
@@ -38,12 +40,18 @@ def scraper_worker(task_q, hb_val, stop_ev):
         browser.close()
 
 if __name__ == "__main__":
+    # ok
     mp.set_start_method("spawn", force=True)   # MUST be first thing in __main__
     SEED_URL = "https://books.toscrape.com/catalogue/category/books_1/index.html"
+    # I use a lot of time self. and it is unnecessary
     task_q = mp.Queue()
+    # need learn. Maybe cool element
     stop_events = [mp.Event() for _ in range(3)]
+    # don't know what it is
     hb_vals = [mp.Value('d', 0.0) for _ in range(3)]
 
+    # I have error. Maybe create inside playwright.
+    # I think if create inside playwright I don't get error message
     p_catalog = mp.Process(target=catalog_worker, args=(SEED_URL, task_q, hb_vals[0], stop_events[0]))
     p_scr1 = mp.Process(target=scraper_worker, args=(task_q, hb_vals[1], stop_events[1]))
     p_scr2 = mp.Process(target=scraper_worker, args=(task_q, hb_vals[2], stop_events[2]))
